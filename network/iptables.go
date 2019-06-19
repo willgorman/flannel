@@ -112,7 +112,9 @@ func ensureIPTables(ipt IPTables, rules []IPTablesRule) error {
 	// Otherwise, teardown all the rules and set them up again
 	// We do this because the order of the rules is important
 	log.Info("Some iptables rules are missing; deleting and recreating rules")
-	teardownIPTables(ipt, rules)
+	if err = teardownIPTables(ipt, rules); err != nil {
+		return fmt.Errorf("Error tearing down rules: %v", err)
+	}
 	if err = setupIPTables(ipt, rules); err != nil {
 		return fmt.Errorf("Error setting up rules: %v", err)
 	}
@@ -131,14 +133,22 @@ func setupIPTables(ipt IPTables, rules []IPTablesRule) error {
 	return nil
 }
 
-func teardownIPTables(ipt IPTables, rules []IPTablesRule) {
+func teardownIPTables(ipt IPTables, rules []IPTablesRule) error {
 	for _, rule := range rules {
 		log.Info("Deleting iptables rule: ", strings.Join(rule.rulespec, " "))
-		// We ignore errors here because if there's an error it's almost certainly because the rule
-		// doesn't exist, which is fine (we don't need to delete rules that don't exist)
 		err := ipt.Delete(rule.table, rule.chain, rule.rulespec...)
 		if err != nil {
-			log.Errorf("Failed to delete rule:  [%v] with cause [%v]", strings.Join(rule.rulespec, " "), err)
+			errorString = err.Error()
+			// If this error is because the rule is already deleted, the message from iptables will be
+			// "Bad rule (does a matching rule exist in that chain?)". These are safe to ignore.
+			// However other errors (like EAGAIN caused by other things not respecting the xtables.lock)
+			// should halt the ensure process.  Otherwise rules can get out of order when a rule we think
+			// is deleted is actually still in the chain.
+			if !strings.Contains(errorString, "Bad rule") {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
