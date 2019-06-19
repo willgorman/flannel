@@ -136,6 +136,9 @@ func teardownIPTables(ipt IPTables, rules []IPTablesRule) {
 		log.Info("Deleting iptables rule: ", strings.Join(rule.rulespec, " "))
 		// We ignore errors here because if there's an error it's almost certainly because the rule
 		// doesn't exist, which is fine (we don't need to delete rules that don't exist)
-		ipt.Delete(rule.table, rule.chain, rule.rulespec...)
+		err := ipt.Delete(rule.table, rule.chain, rule.rulespec...)
+		if err != nil {
+			log.Errorf("Failed to delete rule:  [%v] with cause [%v]", strings.Join(rule.rulespec, " "), err)
+		}
 	}
 }
