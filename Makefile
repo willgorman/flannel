@@ -46,7 +46,7 @@ dist/flanneld: $(shell find . -type f  -name '*.go')
 	  -ldflags "-s -w -X github.com/coreos/flannel/version.Version=$(TAG)"
 
 test: license-check
-	go test -cover $(TEST_PACKAGES_EXPANDED)
+	go test -cover $(TEST_PACKAGES_EXPANDED) -v
 	cd dist; ./mk-docker-opts_tests.sh
 
 e2e-test: dist/flanneld-$(TAG)-$(ARCH).docker

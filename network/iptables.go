@@ -138,7 +138,7 @@ func teardownIPTables(ipt IPTables, rules []IPTablesRule) error {
 		log.Info("Deleting iptables rule: ", strings.Join(rule.rulespec, " "))
 		err := ipt.Delete(rule.table, rule.chain, rule.rulespec...)
 		if err != nil {
-			errorString = err.Error()
+			errorString := err.Error()
 			// If this error is because the rule is already deleted, the message from iptables will be
 			// "Bad rule (does a matching rule exist in that chain?)". These are safe to ignore.
 			// However other errors (like EAGAIN caused by other things not respecting the xtables.lock)
