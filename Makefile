@@ -45,7 +45,7 @@ dist/flanneld: $(shell find . -type f  -name '*.go')
 	go build -o dist/flanneld \
 	  -ldflags "-s -w -X github.com/coreos/flannel/version.Version=$(TAG)"
 
-test: license-check gofmt
+test: license-check
 	go test -cover $(TEST_PACKAGES_EXPANDED)
 	cd dist; ./mk-docker-opts_tests.sh
 
@@ -119,6 +119,19 @@ dist/flanneld-$(ARCH):
 		CGO_ENABLED=1 make -e dist/flanneld && \
 		mv dist/flanneld dist/flanneld-$(ARCH) && \
 		file dist/flanneld-$(ARCH)'
+
+## Build an architecture specific flanneld binary
+testit:
+	# Build for other platforms with 'ARCH=$$ARCH make dist/flanneld-$$ARCH'
+	# valid values for $$ARCH are [amd64 arm arm64 ppc64le s390x]
+	docker run -e CC=$(CC) -e GOARM=$(GOARM) -e GOARCH=$(ARCH) \
+		-u $(shell id -u):$(shell id -g) \
+	    -v $(CURDIR):/go/src/github.com/coreos/flannel:ro \
+        -v $(CURDIR)/dist:/go/src/github.com/coreos/flannel/dist \
+	    gcr.io/google_containers/kube-cross:$(KUBE_CROSS_TAG) /bin/bash -c '\
+		cd /go/src/github.com/coreos/flannel && \
+		CGO_ENABLED=1 make -e test'
+
 
 ## Build an architecture specific iptables binary
 dist/iptables-$(ARCH):
